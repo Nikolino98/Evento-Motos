@@ -59,17 +59,14 @@ const Index = () => {
   };
   
   const handleCreateAttendee = async (newAttendee: Attendee) => {
-    const updatedAttendees = [...attendees, newAttendee];
-    setAttendees(updatedAttendees);
-    
     try {
       // Convertir el asistente al formato de la base de datos
-      const { id, braceletNumber, companionBraceletNumber, ...rowData } = newAttendee;
+      const { id, braceletNumber, companionBraceletNumber, isConfirmed, ...rowData } = newAttendee;
       const dbRecord = {
         id,
-        row_data: rowData,
+        row_data: { ...rowData, isConfirmed },
         bracelet_number: braceletNumber,
-        companion_bracelet_number: companionBraceletNumber,
+        companion_bracelet_number: companionBraceletNumber
       };
       
       // Insertar directamente en la base de datos
@@ -78,6 +75,10 @@ const Index = () => {
         .insert(dbRecord);
         
       if (error) throw error;
+      
+      // Actualizar la lista local después de guardar en la base de datos
+      // Esto es importante para asegurar que los datos se muestren correctamente
+      setAttendees(prev => [...prev, newAttendee]);
       
       toast({
         title: "Invitado creado",
