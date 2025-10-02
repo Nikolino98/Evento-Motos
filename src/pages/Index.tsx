@@ -63,8 +63,26 @@ const Index = () => {
     setAttendees(updatedAttendees);
     
     try {
-      // Usar la función del hook useAttendees para crear el asistente
-      await updateAttendee(newAttendee);
+      // Convertir el asistente al formato de la base de datos
+      const { id, braceletNumber, companionBraceletNumber, ...rowData } = newAttendee;
+      const dbRecord = {
+        id,
+        row_data: rowData,
+        bracelet_number: braceletNumber,
+        companion_bracelet_number: companionBraceletNumber,
+      };
+      
+      // Insertar directamente en la base de datos
+      const { error } = await supabase
+        .from("attendees")
+        .insert(dbRecord);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Invitado creado",
+        description: "El nuevo invitado se ha guardado correctamente en la base de datos.",
+      });
     } catch (error) {
       console.error("Error creating attendee:", error);
       toast({
