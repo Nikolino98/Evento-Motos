@@ -53,7 +53,9 @@ export const AttendeeList = ({ attendees, onEditAttendee }: AttendeeListProps) =
                 {headers.map((header) => (
                   <div key={header} className="space-y-1">
                     <p className="text-xs font-medium uppercase tracking-wide" style={{ color: '#F6762C' }}>
-                      {header}
+                      {header === "braceletNumber" ? "NUMERO DE PULSERA" : 
+                       header === "companionBraceletNumber" ? "PULSERA ACOMPAÑANTE" : 
+                       header}
                     </p>
                     <p className="text-sm font-medium" style={{ color: '#111317' }}>
                       {attendee[header] ?? "—"}
@@ -63,7 +65,7 @@ export const AttendeeList = ({ attendees, onEditAttendee }: AttendeeListProps) =
                 {attendee.braceletNumber && (
                   <div className="space-y-1">
                     <p className="text-xs font-medium uppercase tracking-wide" style={{ color: '#F6762C' }}>
-                      Pulsera
+                      NUMERO DE PULSERA
                     </p>
                     <Badge variant="default" className="font-mono">
                       #{attendee.braceletNumber}
@@ -73,7 +75,7 @@ export const AttendeeList = ({ attendees, onEditAttendee }: AttendeeListProps) =
                 {attendee.companionBraceletNumber && (
                   <div className="space-y-1">
                     <p className="text-xs font-medium uppercase tracking-wide" style={{ color: '#F6762C' }}>
-                      Pulsera Acompañante
+                      PULSERA ACOMPAÑANTE
                     </p>
                     <Badge variant="default" className="font-mono">
                       #{attendee.companionBraceletNumber}
