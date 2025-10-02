@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
 import * as XLSX from 'xlsx';
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { attendees, isLoading, setAttendees, saveAttendees, updateAttendee } = useAttendees();
@@ -60,7 +61,18 @@ const Index = () => {
   const handleCreateAttendee = async (newAttendee: Attendee) => {
     const updatedAttendees = [...attendees, newAttendee];
     setAttendees(updatedAttendees);
-    await updateAttendee(newAttendee);
+    
+    try {
+      // Usar la función del hook useAttendees para crear el asistente
+      await updateAttendee(newAttendee);
+    } catch (error) {
+      console.error("Error creating attendee:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo crear el nuevo asistente en la base de datos.",
+      });
+    }
   };
   
   const handleExportToXLSX = () => {
