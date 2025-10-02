@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Bike, Loader2, UserPlus, FileDown } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Bike, Loader2, UserPlus, FileDown, WifiOff } from "lucide-react";
 import { Attendee } from "@/types/attendee";
 import { FileUpload } from "@/components/FileUpload";
 import { AttendeeList } from "@/components/AttendeeList";
@@ -18,6 +18,34 @@ const Index = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [isNewAttendeeModalOpen, setIsNewAttendeeModalOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  
+  // Monitorear el estado de la conexión
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Verificar la conexión con Supabase al inicio
+    const checkConnection = async () => {
+      try {
+        await supabase.from('attendees').select('id').limit(1);
+        setIsOnline(true);
+      } catch (error) {
+        console.error('Error de conexión con Supabase:', error);
+        setIsOnline(false);
+      }
+    };
+    
+    checkConnection();
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const usedBraceletNumbers = useMemo(() => {
     const numbers = new Set<string>();
@@ -60,6 +88,10 @@ const Index = () => {
   
   const handleCreateAttendee = async (newAttendee: Attendee) => {
     try {
+      if (!isOnline) {
+        throw new Error("Sin conexión a internet");
+      }
+      
       // Convertir el asistente al formato de la base de datos
       const { id, braceletNumber, companionBraceletNumber, isConfirmed, ...rowData } = newAttendee;
       const dbRecord = {
@@ -84,12 +116,57 @@ const Index = () => {
         title: "Invitado creado",
         description: "El nuevo invitado se ha guardado correctamente en la base de datos.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating attendee:", error);
+      
+      // Mensaje de error más específico
+      let errorMessage = "No se pudo crear el nuevo asistente en la base de datos.";
+      if (!isOnline || error.message === "Sin conexión a internet" || error.message?.includes("fetch")) {
+        errorMessage = "No hay conexión a internet. Verifica tu conexión e intenta nuevamente.";
+      }
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudo crear el nuevo asistente en la base de datos.",
+        description: errorMessage,
+      });
+    }
+  };
+  
+  const handleDeleteAttendee = async (attendeeToDelete: Attendee) => {
+    try {
+      if (!isOnline) {
+        throw new Error("Sin conexión a internet");
+      }
+      
+      // Eliminar de la base de datos
+      const { error } = await supabase
+        .from("attendees")
+        .delete()
+        .eq("id", attendeeToDelete.id);
+        
+      if (error) throw error;
+      
+      // Actualizar la lista local
+      setAttendees(prev => prev.filter(attendee => attendee.id !== attendeeToDelete.id));
+      
+      toast({
+        title: "Invitado eliminado",
+        description: "El invitado ha sido eliminado correctamente.",
+      });
+    } catch (error: any) {
+      console.error("Error deleting attendee:", error);
+      
+      // Mensaje de error más específico
+      let errorMessage = "No se pudo eliminar el invitado de la base de datos.";
+      if (!isOnline || error.message === "Sin conexión a internet" || error.message?.includes("fetch")) {
+        errorMessage = "No hay conexión a internet. Verifica tu conexión e intenta nuevamente.";
+      }
+      
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage,
       });
     }
   };
@@ -168,6 +245,12 @@ const Index = () => {
           <img src="/motos-sunset.jpg" alt="Evento de motos" className="w-11/12 h-full object-cover rounded-xl shadow-lg border-4 border-[#F6762C]" />
         </div>
         <main className="max-w-6xl mx-auto space-y-8">
+          {!isOnline && (
+            <div className="bg-red-500/20 border border-red-500 rounded-md p-4 mb-4 flex items-center gap-2">
+              <WifiOff className="h-5 w-5 text-red-500" />
+              <p className="text-red-500 font-medium">Sin conexión a internet. Algunas funciones pueden no estar disponibles.</p>
+            </div>
+          )}
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-[#F6762C]" />
@@ -222,6 +305,7 @@ const Index = () => {
               <AttendeeList
                 attendees={attendees}
                 onEditAttendee={handleEditAttendee}
+                onDeleteAttendee={handleDeleteAttendee}
               />
               <div className="flex justify-center mt-8">
                 <div
